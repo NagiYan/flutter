@@ -341,7 +341,7 @@ class IOSSimulator extends Device {
   Future<bool> _applicationIsInstalledAndRunning(ApplicationPackage app) async {
     final List<bool> criteria = await Future.wait(<Future<bool>>[
       isAppInstalled(app),
-      exitsHappyAsync(<String>['/usr/bin/killall', 'Runner']),
+      exitsHappyAsync(<String>['/usr/bin/killall', 'ASCMainClient']),
     ]);
     return criteria.reduce((bool a, bool b) => a && b);
   }
@@ -363,16 +363,23 @@ class IOSSimulator extends Device {
         extraFrontEndOptions: buildInfo.extraFrontEndOptions,
         extraGenSnapshotOptions: buildInfo.extraGenSnapshotOptions,
         buildSharedLibrary: buildInfo.buildSharedLibrary);
+    /// Modified by Nagi on 2018-08-06
+    if (app.name.startsWith('Runner')) {
+      printStatus('[ASC] App name is ${app.name}, buildXcodeProject');
+      final XcodeBuildResult buildResult = await buildXcodeProject(
+        app: app,
+        buildInfo: debugBuildInfo,
+        targetOverride: mainPath,
+        buildForDevice: false,
+        usesTerminalUi: usesTerminalUi,
+      );
+      if (!buildResult.success)
+        throwToolExit('Could not build the application for the simulator.');
+    }
+    else {
+      printStatus('[ASC] Skip buildXcodeProject');
+    }
 
-    final XcodeBuildResult buildResult = await buildXcodeProject(
-      app: app,
-      buildInfo: debugBuildInfo,
-      targetOverride: mainPath,
-      buildForDevice: false,
-      usesTerminalUi: usesTerminalUi,
-    );
-    if (!buildResult.success)
-      throwToolExit('Could not build the application for the simulator.');
 
     // Step 2: Assert that the Xcode project was successfully built.
     final IOSApp iosApp = app;

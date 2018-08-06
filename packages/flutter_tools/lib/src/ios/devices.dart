@@ -235,20 +235,28 @@ class IOSDevice extends Device {
       // TODO(chinmaygarde): Use mainPath, route.
       printTrace('Building ${package.name} for $id');
 
-      // Step 1: Build the precompiled/DBC application if necessary.
-      final XcodeBuildResult buildResult = await buildXcodeProject(
-          app: package,
-          buildInfo: debuggingOptions.buildInfo,
-          targetOverride: mainPath,
-          buildForDevice: true,
-          usesTerminalUi: usesTerminalUi,
-      );
-      if (!buildResult.success) {
-        printError('Could not build the precompiled application for the device.');
-        await diagnoseXcodeBuildFailure(buildResult);
-        printError('');
-        return new LaunchResult.failed();
+      /// Modified by Nagi on 2018-08-06
+      if (package.name.startsWith('Runner')) {
+      printStatus('[ASC] App name is ${package.name}, buildXcodeProject');
+        // Step 1: Build the precompiled/DBC application if necessary.
+        final XcodeBuildResult buildResult = await buildXcodeProject(
+            app: package,
+            buildInfo: debuggingOptions.buildInfo,
+            targetOverride: mainPath,
+            buildForDevice: true,
+            usesTerminalUi: usesTerminalUi,
+        );
+        if (!buildResult.success) {
+          printError('Could not build the precompiled application for the device.');
+          await diagnoseXcodeBuildFailure(buildResult);
+          printError('');
+          return new LaunchResult.failed();
+        }
       }
+      else {
+        printStatus('[ASC] Skip buildXcodeProject');
+      }
+      
     } else {
       if (!await installApp(package))
         return new LaunchResult.failed();

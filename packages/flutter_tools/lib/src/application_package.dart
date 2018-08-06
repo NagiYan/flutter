@@ -156,6 +156,9 @@ bool _isBundleDirectory(FileSystemEntity entity) =>
 
 abstract class IOSApp extends ApplicationPackage {
   IOSApp({@required String projectBundleId}) : super(id: projectBundleId);
+  
+  /// Add By Nagi 2018-08-06
+  static String projectNameFull;
 
   /// Creates a new IOSApp from an existing app bundle or IPA.
   factory IOSApp.fromPrebuiltApp(FileSystemEntity applicationBinary) {
@@ -222,15 +225,27 @@ abstract class IOSApp extends ApplicationPackage {
     if (getCurrentHostPlatform() != HostPlatform.darwin_x64)
       return null;
 
-    final String plistPath = fs.path.join('ios', 'Runner', 'Info.plist');
+    /// Add By Nagi 2018-08-06
+    /// search the path and find the project name
+    final Directory projectDirectory = fs.directory(fs.path.join('ios'));
+    String projectName;
+    projectDirectory.listSync().forEach((FileSystemEntity entity) {
+      if (entity.basename.endsWith('xcodeproj')) {
+        projectNameFull = entity.basename;
+        projectName = projectNameFull.substring(0, entity.basename.length - 10);
+      }
+    });
+    printStatus('[ASC] Find The ProjectName is $projectName');
+
+    final String plistPath = fs.path.join('ios', projectName, 'Info.plist');
     String id = iosWorkflow.getPlistValueFromFile(
       plistPath,
       plist.kCFBundleIdentifierKey,
     );
     if (id == null || !xcodeProjectInterpreter.isInstalled)
       return null;
-    final String projectPath = fs.path.join('ios', 'Runner.xcodeproj');
-    final Map<String, String> buildSettings = xcodeProjectInterpreter.getBuildSettings(projectPath, 'Runner');
+    final String projectPath = fs.path.join('ios', projectNameFull);
+    final Map<String, String> buildSettings = xcodeProjectInterpreter.getBuildSettings(projectPath, projectName);
     id = substituteXcodeVariables(id, buildSettings);
 
     return new BuildableIOSApp(
@@ -249,7 +264,7 @@ abstract class IOSApp extends ApplicationPackage {
 }
 
 class BuildableIOSApp extends IOSApp {
-  static const String kBundleName = 'Runner.app';
+  // static const String kBundleName = 'ASCMainClient.app';
 
   BuildableIOSApp({
     this.appDirectory,
@@ -267,7 +282,8 @@ class BuildableIOSApp extends IOSApp {
   final Map<String, String> buildSettings;
 
   @override
-  String get name => kBundleName;
+  /// Edit By Nagi 2018-08-06 
+  String get name => IOSApp.projectNameFull.substring(0, IOSApp.projectNameFull.length - 10) + '.app';
 
   @override
   String get simulatorBundlePath => _buildAppPath('iphonesimulator');
@@ -279,7 +295,8 @@ class BuildableIOSApp extends IOSApp {
   bool get isSwift => buildSettings?.containsKey('SWIFT_VERSION');
 
   String _buildAppPath(String type) {
-    return fs.path.join(getIosBuildDirectory(), type, kBundleName);
+    /// Edit By Nagi 2018-08-06 
+    return fs.path.join(getIosBuildDirectory(), type, IOSApp.projectNameFull.substring(0, IOSApp.projectNameFull.length - 10) + '.app');
   }
 }
 
