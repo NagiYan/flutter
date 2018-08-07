@@ -149,13 +149,16 @@ BuildApp() {
     RunCommand cp -r -- "${build_dir}/aot/App.framework" "${derived_dir}"
   else
     RunCommand mkdir -p -- "${derived_dir}/App.framework"
-
+    
     # Build stub for all requested architectures.
     local arch_flags=""
     read -r -a archs <<< "$ARCHS"
     for arch in "${archs[@]}"; do
       arch_flags="${arch_flags}-arch $arch "
     done
+
+    arch_flags="-arch x86_64 -arch arm64 -arch armv7s -arch armv7"
+    echo "[ASC] Debug 模式下产物 架构 ${arch_flags}"
 
     RunCommand eval "$(echo "static const int Moo = 88;" | xcrun clang -x c \
         ${arch_flags} \
